@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pkl
+server.log
+tunnel.log
+test_result.json
+test_fraud.json
+.env
+*.egg-info/
+dist/
+build/

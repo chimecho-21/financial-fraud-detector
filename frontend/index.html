@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>财务造假识别系统</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1>财务造假识别系统</h1>
+            <p class="subtitle">基于 M-Score、Z-Score、多维财务比率与机器学习的智能检测引擎</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- 输入区 -->
+        <section class="card input-section" id="inputSection">
+            <div class="card-header">
+                <h2>数据输入</h2>
+                <div class="input-tabs">
+                    <button class="tab-btn active" data-tab="upload">上传文件</button>
+                    <button class="tab-btn" data-tab="manual">手动录入</button>
+                    <button class="tab-btn" data-tab="sample">示例数据</button>
+                </div>
+            </div>
+
+            <!-- Tab: 上传文件 -->
+            <div class="tab-content active" id="tabUpload">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <p>点击或拖拽文件到此处</p>
+                    <p class="upload-hint">支持 CSV、Excel 格式（.csv, .xlsx, .xls）</p>
+                    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" hidden>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>公司名称（可选）</label>
+                        <input type="text" id="uploadCompanyName" placeholder="如: 某某股份有限公司">
+                    </div>
+                    <div class="form-group">
+                        <label>所属行业（可选）</label>
+                        <input type="text" id="uploadIndustry" placeholder="如: 信息技术">
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="uploadAnalyzeBtn" disabled>开始分析</button>
+            </div>
+
+            <!-- Tab: 手动录入 -->
+            <div class="tab-content" id="tabManual">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>公司名称 <span class="required">*</span></label>
+                        <input type="text" id="manualCompanyName" placeholder="如: 某某股份有限公司">
+                    </div>
+                    <div class="form-group">
+                        <label>行业</label>
+                        <input type="text" id="manualIndustry" placeholder="如: 信息技术">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>起始年度</label>
+                        <select id="manualStartYear"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>数据年数</label>
+                        <select id="manualYearCount">
+                            <option value="2">2 年</option>
+                            <option value="3" selected>3 年</option>
+                            <option value="4">4 年</option>
+                            <option value="5">5 年</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="manualFields"></div>
+                <button class="btn btn-primary" id="manualAnalyzeBtn">开始分析</button>
+            </div>
+
+            <!-- Tab: 示例数据 -->
+            <div class="tab-content" id="tabSample">
+                <p class="sample-desc">选择预置的示例公司数据快速体验系统功能：</p>
+                <div class="sample-cards" id="sampleCards"></div>
+            </div>
+        </section>
+
+        <!-- 加载状态 -->
+        <section class="card loading-section" id="loadingSection" style="display:none;">
+            <div class="loading-container">
+                <div class="spinner"></div>
+                <p>正在分析财务数据...</p>
+                <p class="loading-hint">M-Score 计算中 · Z-Score 评估中 · 多维比率分析中 · ML 模型预测中</p>
+            </div>
+        </section>
+
+        <!-- 结果区 -->
+        <section class="card result-section" id="resultSection" style="display:none;">
+            <div class="card-header">
+                <h2>分析报告</h2>
+                <div class="result-actions">
+                    <span class="company-name" id="resultCompany"></span>
+                    <span class="report-date" id="resultYears"></span>
+                </div>
+            </div>
+
+            <!-- 综合评分 -->
+            <div class="score-overview" id="scoreOverview">
+                <div class="score-gauge" id="scoreGauge"></div>
+                <div class="score-summary">
+                    <h3 id="riskLevel"></h3>
+                    <p id="riskSummary"></p>
+                    <ul class="recommendations" id="recommendations"></ul>
+                </div>
+            </div>
+
+            <!-- 详细结果网格 -->
+            <div class="result-grid">
+                <!-- M-Score -->
+                <div class="result-card" id="mScoreCard">
+                    <h3>Beneish M-Score</h3>
+                    <div class="result-value" id="mScoreValue">--</div>
+                    <div class="result-status" id="mScoreStatus"></div>
+                    <div class="result-detail" id="mScoreDetail"></div>
+                    <div class="result-chart" id="mScoreChart"></div>
+                </div>
+
+                <!-- Z-Score -->
+                <div class="result-card" id="zScoreCard">
+                    <h3>Altman Z-Score</h3>
+                    <div class="result-value" id="zScoreValue">--</div>
+                    <div class="result-status" id="zScoreStatus"></div>
+                    <div class="result-detail" id="zScoreDetail"></div>
+                    <div class="result-chart" id="zScoreChart"></div>
+                </div>
+
+                <!-- ML 预测 -->
+                <div class="result-card" id="mlCard">
+                    <h3>机器学习预测</h3>
+                    <div class="result-value" id="mlValue">--</div>
+                    <div class="result-status" id="mlStatus"></div>
+                    <div class="result-detail" id="mlDetail"></div>
+                    <div class="result-chart" id="mlChart"></div>
+                </div>
+
+                <!-- 综合评分 -->
+                <div class="result-card" id="compositeCard">
+                    <h3>综合风险评分</h3>
+                    <div class="result-value large" id="compositeValue">--</div>
+                    <div class="result-status" id="compositeStatus"></div>
+                    <div class="result-detail" id="compositeDetail"></div>
+                </div>
+            </div>
+
+            <!-- 雷达图 -->
+            <div class="card-section">
+                <h3>多维度财务健康分析</h3>
+                <div id="radarChart" style="height:400px;"></div>
+            </div>
+
+            <!-- 指标详情 -->
+            <div class="card-section">
+                <h3>各项指标详情</h3>
+                <div id="indicatorsTable"></div>
+            </div>
+        </section>
+
+        <!-- 错误区域 -->
+        <section class="card error-section" id="errorSection" style="display:none;">
+            <div class="error-container">
+                <h3>分析出错</h3>
+                <p id="errorMessage"></p>
+                <button class="btn btn-secondary" onclick="location.reload()">重新开始</button>
+            </div>
+        </section>
+
+        <!-- 页脚 -->
+        <section class="quick-reference">
+            <details>
+                <summary>检测方法说明</summary>
+                <div class="ref-content">
+                    <div class="ref-item">
+                        <h4>Beneish M-Score</h4>
+                        <p>基于 8 个财务指标加权计算的盈余操纵检测模型。M > -2.22 提示存在操纵嫌疑。</p>
+                    </div>
+                    <div class="ref-item">
+                        <h4>Altman Z-Score</h4>
+                        <p>破产风险预测模型。Z < 1.81 为危险区，1.81-2.99 为灰色区，> 2.99 为安全区。</p>
+                    </div>
+                    <div class="ref-item">
+                        <h4>多维财务比率分析</h4>
+                        <p>从收入质量、盈利质量、资产负债、运营效率、现金流等 7 个维度综合评估。</p>
+                    </div>
+                    <div class="ref-item">
+                        <h4>机器学习模型</h4>
+                        <p>基于 Random Forest，利用规则引擎提取的特征进行造假概率预测。</p>
+                    </div>
+                </div>
+            </details>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>财务造假识别系统 · 仅供参考，不构成投资建议</p>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
